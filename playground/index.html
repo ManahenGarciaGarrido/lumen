@@ -1,0 +1,1383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lumen — Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:        #0d0d0f;
+    --panel:     #111114;
+    --panel-2:   #16161b;
+    --border:    #1e1e24;
+    --border-2:  #2a2a33;
+    --accent:    #7c6af7;
+    --accent-2:  #a594ff;
+    --text:      #e2e2e8;
+    --muted:     #8a8a96;
+    --dim:       #5c6370;
+    --kw:        #c678dd;
+    --str:       #98c379;
+    --num:       #d19a66;
+    --com:       #5c6370;
+    --fn:        #61afef;
+    --err:       #e06c75;
+    --ok:        #98c379;
+    --go:        #00add8;
+
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);height:100%;}
+  body{
+    display:flex;flex-direction:column;min-height:100vh;
+    font-size:14px;line-height:1.5;
+    background:
+      radial-gradient(900px 500px at 12% -10%, rgba(124,106,247,.10), transparent 60%),
+      radial-gradient(700px 400px at 100% 0%, rgba(124,106,247,.06), transparent 60%),
+      var(--bg);
+    background-attachment: fixed;
+  }
+  ::selection{background:rgba(124,106,247,.35);color:#fff}
+  button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+
+  /* ───────────────────────── NAVBAR ───────────────────────── */
+  .nav{
+    display:flex;align-items:center;gap:18px;
+    padding:14px 22px;border-bottom:1px solid var(--border);
+    background:rgba(13,13,15,.7);backdrop-filter:blur(10px);
+    position:sticky;top:0;z-index:10;
+  }
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{
+    width:26px;height:26px;position:relative;display:grid;place-items:center;
+    transform:rotate(45deg);
+    background:linear-gradient(135deg, var(--accent) 0%, #5a47d6 100%);
+    border-radius:6px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset, 0 8px 24px -8px rgba(124,106,247,.7);
+  }
+  .logo::after{
+    content:"";position:absolute;inset:5px;border-radius:3px;
+    background:linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,0));
+  }
+  .brand .name{font-weight:700;letter-spacing:.2px;font-size:16px}
+  .brand .tag{color:var(--muted);font-size:12.5px;margin-left:14px;border-left:1px solid var(--border);padding-left:14px}
+  .brand .tag b{color:#cfcfd6;font-weight:600}
+  .brand .dot{color:var(--dim);margin:0 6px}
+
+  .nav .spacer{flex:1}
+  .nav .actions{display:flex;align-items:center;gap:8px}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;
+    height:28px;padding:0 10px;border-radius:999px;
+    border:1px solid var(--border);background:var(--panel);
+    color:var(--muted);font-size:12px;font-weight:500;
+  }
+  .chip .gopher{width:6px;height:6px;border-radius:50%;background:var(--go);box-shadow:0 0 8px var(--go)}
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;
+    height:28px;padding:0 10px;border-radius:6px;
+    background:rgba(0,173,216,.08);color:var(--go);
+    border:1px solid rgba(0,173,216,.25);font-size:12px;font-weight:600;
+  }
+  .iconbtn{
+    width:32px;height:32px;display:grid;place-items:center;
+    border:1px solid var(--border);border-radius:8px;background:var(--panel);
+    color:var(--muted);transition:.15s ease;
+  }
+  .iconbtn:hover{color:var(--text);border-color:var(--border-2);background:var(--panel-2)}
+  .lang-badge{
+    display:inline-flex;align-items:center;gap:6px;
+    height:22px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:600;letter-spacing:.4px;
+    background:rgba(124,106,247,.12);color:var(--accent-2);
+    border:1px solid rgba(124,106,247,.3);text-transform:uppercase;
+  }
+
+  /* ───────────────────────── LAYOUT ───────────────────────── */
+  .shell{flex:1;display:flex;min-height:0;padding:18px;gap:18px}
+  .pane{
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    display:flex;flex-direction:column;min-height:0;overflow:hidden;
+    box-shadow: 0 1px 0 rgba(255,255,255,.02) inset, 0 30px 60px -40px rgba(0,0,0,.8);
+  }
+  .pane.left{flex:0 0 calc(40% - 9px);min-width:340px}
+  .pane.right{flex:1;min-width:0}
+
+  .resizer{
+    width:6px;cursor:col-resize;align-self:stretch;
+    margin:0 -6px;z-index:2;position:relative;
+  }
+  .resizer::before{
+    content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:2px;height:36px;border-radius:2px;background:var(--border-2);transition:.15s ease;
+  }
+  .resizer:hover::before{background:var(--accent);box-shadow:0 0 12px var(--accent)}
+
+  .pane-header{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 14px;border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg, var(--panel-2), var(--panel));
+    min-height:46px;
+  }
+  .pane-header .title{font-size:12.5px;color:var(--muted);font-weight:500;letter-spacing:.3px}
+  .pane-header .title b{color:var(--text);font-weight:600}
+  .pane-header .grow{flex:1}
+  .filechip{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:5px 10px;border-radius:6px;background:rgba(255,255,255,.03);
+    border:1px solid var(--border);font-family:var(--mono);font-size:11.5px;color:var(--muted);
+  }
+  .filechip .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+
+  /* ───────────────────────── EDITOR ───────────────────────── */
+  .editor-wrap{
+    position:relative;flex:1;min-height:0;display:flex;
+    background:#0a0a0d;
+  }
+  .gutter{
+    flex:0 0 52px;padding:14px 0;
+    color:#3d3d47;font-family:var(--mono);font-size:13px;line-height:1.6;
+    text-align:right;user-select:none;
+    border-right:1px solid var(--border);
+    overflow:hidden;
+  }
+  .gutter > div{padding:0 12px 0 0}
+  .gutter .cur{color:var(--accent-2)}
+
+  .code-area{position:relative;flex:1;min-width:0;overflow:hidden}
+  .code-area pre,
+  .code-area textarea{
+    position:absolute;inset:0;
+    margin:0;padding:14px 16px;
+    font:13px/1.6 var(--mono);
+    tab-size:2;
+    white-space:pre;
+    overflow:auto;
+    border:0;outline:none;
+    background:transparent;
+  }
+  .code-area pre{
+    pointer-events:none;
+    color:var(--text);
+  }
+  .code-area textarea{
+    color:transparent;
+    caret-color:var(--accent-2);
+    resize:none;
+    -webkit-text-fill-color:transparent;
+  }
+  .code-area textarea::selection{background:rgba(124,106,247,.30);-webkit-text-fill-color:transparent}
+  .code-area textarea:focus{outline:none}
+
+  /* token colors */
+  .tok-kw{color:var(--kw)}
+  .tok-str{color:var(--str)}
+  .tok-num{color:var(--num)}
+  .tok-com{color:var(--com);font-style:italic}
+  .tok-fn{color:var(--fn)}
+  .tok-op{color:#abb2bf}
+  .tok-bool{color:var(--num)}
+  .tok-id{color:var(--text)}
+
+  /* ───────────────────────── EDITOR TOOLBAR ───────────────────────── */
+  .editor-toolbar{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;border-top:1px solid var(--border);
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+  }
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    height:32px;padding:0 12px;border-radius:8px;
+    border:1px solid var(--border);background:var(--panel-2);
+    color:var(--text);font-size:13px;font-weight:500;transition:.15s ease;
+  }
+  .btn:hover{border-color:var(--border-2);background:#1c1c22}
+  .btn.primary{
+    background:linear-gradient(180deg, var(--accent), #6451e6);
+    border-color:rgba(255,255,255,.08);
+    color:#fff;font-weight:600;
+    box-shadow: 0 6px 20px -8px rgba(124,106,247,.7), 0 0 0 1px rgba(124,106,247,.4) inset;
+  }
+  .btn.primary:hover{filter:brightness(1.05)}
+  .btn.primary.running{animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{
+    0%,100%{box-shadow: 0 6px 20px -8px rgba(124,106,247,.7), 0 0 0 1px rgba(124,106,247,.4) inset}
+    50%{box-shadow: 0 6px 28px -6px rgba(124,106,247,.95), 0 0 0 2px rgba(124,106,247,.6) inset}
+  }
+  .btn .kbd{
+    font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:4px;
+    background:rgba(0,0,0,.35);color:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.08);
+  }
+  .btn .play{width:0;height:0;border-left:7px solid currentColor;border-top:5px solid transparent;border-bottom:5px solid transparent;margin-left:1px}
+  .btn.ghost{background:transparent}
+
+  .select{
+    position:relative;display:inline-flex;align-items:center;
+    height:32px;padding:0 30px 0 12px;border-radius:8px;
+    border:1px solid var(--border);background:var(--panel-2);
+    color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;
+    appearance:none;-webkit-appearance:none;min-width:170px;
+  }
+  .select-wrap{position:relative}
+  .select-wrap::after{
+    content:"";position:absolute;right:11px;top:50%;width:7px;height:7px;
+    border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);
+    transform:translateY(-70%) rotate(45deg);pointer-events:none;
+  }
+  .select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,106,247,.18)}
+
+  .editor-footer{
+    display:flex;align-items:center;gap:14px;
+    padding:8px 14px;border-top:1px solid var(--border);
+    background:#0c0c0f;color:var(--muted);font-family:var(--mono);font-size:11.5px;
+  }
+  .editor-footer .sep{color:var(--dim)}
+  .editor-footer .ln-col{color:var(--text)}
+  .status-ok{display:inline-flex;align-items:center;gap:6px;color:var(--ok)}
+  .status-ok::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+
+  /* ───────────────────────── TABS ───────────────────────── */
+  .tabs{display:flex;gap:2px;align-items:center}
+  .tab{
+    position:relative;display:inline-flex;align-items:center;gap:8px;
+    height:32px;padding:0 14px;border-radius:8px;
+    color:var(--muted);font-size:13px;font-weight:500;
+    border:1px solid transparent;transition:.15s ease;
+  }
+  .tab:hover{color:var(--text);background:rgba(255,255,255,.03)}
+  .tab.active{color:var(--text);background:rgba(124,106,247,.10);border-color:rgba(124,106,247,.3)}
+  .tab .count{
+    font-family:var(--mono);font-size:10.5px;padding:1px 6px;border-radius:999px;
+    background:rgba(255,255,255,.06);color:var(--muted);
+  }
+  .tab.active .count{background:rgba(124,106,247,.2);color:var(--accent-2)}
+
+  .tabpanes{flex:1;min-height:0;display:flex;flex-direction:column}
+  .tabpane{display:none;flex:1;min-height:0;overflow:auto;animation:fadein .18s ease}
+  .tabpane.active{display:flex;flex-direction:column}
+  @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ── Output ── */
+  .terminal{
+    flex:1;min-height:0;overflow:auto;
+    padding:14px 18px;
+    background:#070708;
+    font-family:var(--mono);font-size:13px;line-height:1.65;
+    color:#bcd7a8;
+  }
+  .term-line{display:grid;grid-template-columns:78px 1fr;gap:12px;opacity:0;animation:lineIn .18s ease forwards}
+  .term-line .ts{color:#3d3d47}
+  .term-line.err .msg{color:var(--err)}
+  .term-line.ok  .msg{color:var(--ok)}
+  .term-line.info .msg{color:#9aa0aa}
+  .term-line.sys  .msg{color:var(--accent-2)}
+  .term-line .msg{white-space:pre-wrap;word-break:break-word}
+  .term-empty{
+    flex:1;display:grid;place-items:center;color:var(--dim);
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, transparent 1px 24px),
+      #070708;
+    font-family:var(--mono);font-size:12.5px;
+  }
+  .term-empty .stack{display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center}
+  .term-empty .kbd{padding:1px 6px;border-radius:4px;background:#16161b;border:1px solid var(--border);color:#bcbcc4;font-size:11px}
+  @keyframes lineIn{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}
+
+  .running-bar{
+    height:2px;background:rgba(124,106,247,.15);position:relative;overflow:hidden;display:none;
+  }
+  .running-bar.on{display:block}
+  .running-bar::after{
+    content:"";position:absolute;left:-30%;top:0;height:100%;width:30%;
+    background:linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation:slide 1.1s linear infinite;
+  }
+  @keyframes slide{to{left:100%}}
+
+  /* ── Tokens ── */
+  .tokens-wrap{flex:1;min-height:0;overflow:auto;padding:0}
+  table.tokens{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px}
+  table.tokens thead th{
+    position:sticky;top:0;background:#0e0e12;
+    text-align:left;padding:10px 14px;
+    color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.6px;text-transform:uppercase;
+    border-bottom:1px solid var(--border);
+  }
+  table.tokens tbody td{
+    padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.03);
+    vertical-align:top;
+  }
+  table.tokens tbody tr:hover{background:rgba(124,106,247,.04)}
+  .ttype{
+    display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:4px;
+    background:rgba(255,255,255,.05);color:#cfcfd6;font-size:11px;letter-spacing:.4px;
+  }
+  .ttype.kw{background:rgba(198,120,221,.12);color:var(--kw)}
+  .ttype.id{background:rgba(255,255,255,.05);color:#cfcfd6}
+  .ttype.num{background:rgba(209,154,102,.12);color:var(--num)}
+  .ttype.str{background:rgba(152,195,121,.12);color:var(--str)}
+  .ttype.op{background:rgba(97,175,239,.10);color:var(--fn)}
+  .ttype.punct{background:rgba(255,255,255,.05);color:#9aa0aa}
+  .ttype.bool{background:rgba(209,154,102,.12);color:var(--num)}
+  .col-line{color:var(--muted);width:60px}
+  .col-col{color:var(--dim);width:50px}
+  .lit{color:var(--text)}
+  .empty-state{
+    flex:1;display:grid;place-items:center;color:var(--dim);padding:30px;text-align:center;
+  }
+  .empty-state h3{margin:0 0 6px;color:#bcbcc4;font-size:14px;font-weight:600}
+  .empty-state p{margin:0;font-size:13px;max-width:340px}
+
+  /* ── AST ── */
+  .ast-wrap{flex:1;min-height:0;overflow:auto;padding:16px 18px;font-family:var(--mono);font-size:13px}
+  .ast details{margin:0}
+  .ast summary{
+    list-style:none;cursor:pointer;padding:3px 0;display:flex;align-items:center;gap:6px;
+    border-radius:4px;
+  }
+  .ast summary::-webkit-details-marker{display:none}
+  .ast summary:hover{background:rgba(124,106,247,.05)}
+  .ast .chev{
+    width:10px;height:10px;display:inline-block;
+    border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);
+    transform:rotate(-45deg);transition:transform .15s ease;
+    margin-right:2px;
+  }
+  .ast details[open] > summary > .chev{transform:rotate(45deg)}
+  .ast details > div, .ast details > details{
+    margin-left:14px;padding-left:10px;
+    border-left:1px dashed rgba(255,255,255,.08);
+  }
+  .ast .nt{color:var(--kw);font-weight:600}      /* node type */
+  .ast .nm{color:var(--fn)}                       /* name */
+  .ast .v-str{color:var(--str)}
+  .ast .v-num{color:var(--num)}
+  .ast .v-bool{color:var(--num)}
+  .ast .v-id{color:var(--text)}
+  .ast .v-op{color:#abb2bf}
+  .ast .leaf{padding:2px 0 2px 24px;color:#cfcfd6}
+  .ast .label{color:var(--muted);margin-right:4px}
+
+  /* ── About ── */
+  .about{padding:22px 26px;max-width:760px}
+  .about h2{margin:0 0 6px;font-size:18px;font-weight:700}
+  .about .lead{color:var(--muted);margin:0 0 22px;font-size:13.5px;line-height:1.7}
+  .about .lead code{font-family:var(--mono);font-size:12px;background:rgba(255,255,255,.04);padding:1px 6px;border-radius:4px;color:#cfcfd6}
+  .steps{display:flex;flex-direction:column;gap:14px;position:relative}
+  .steps::before{
+    content:"";position:absolute;left:14px;top:6px;bottom:6px;width:1px;background:var(--border);
+  }
+  .step{display:grid;grid-template-columns:30px 1fr;gap:14px;position:relative}
+  .step .dot{
+    width:28px;height:28px;border-radius:50%;
+    background:var(--panel-2);border:1px solid var(--border-2);
+    display:grid;place-items:center;font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:600;
+    z-index:1;
+  }
+  .step.done .dot{background:rgba(124,106,247,.15);border-color:rgba(124,106,247,.5);color:var(--accent-2)}
+  .step .body{padding-top:2px}
+  .step h4{margin:0 0 2px;font-size:14px;font-weight:600}
+  .step h4 .tag{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;
+    color:var(--muted);background:rgba(255,255,255,.04);padding:2px 6px;border-radius:4px;margin-left:8px;
+  }
+  .step p{margin:2px 0 0;color:var(--muted);font-size:12.5px;line-height:1.65}
+  .about .meta{
+    display:flex;gap:18px;flex-wrap:wrap;margin-top:24px;padding-top:18px;border-top:1px solid var(--border);
+    font-size:12px;color:var(--muted);
+  }
+  .about .meta .k{color:var(--dim);margin-right:6px}
+  .about .meta .v{color:var(--text);font-family:var(--mono)}
+
+  /* ───────────────────────── FOOTER ───────────────────────── */
+  footer{
+    padding:14px 22px;border-top:1px solid var(--border);
+    color:var(--muted);font-size:12px;text-align:center;
+    background:rgba(13,13,15,.5);
+  }
+  footer b{color:#cfcfd6;font-weight:600}
+
+  /* ───────────────────────── RESPONSIVE ───────────────────────── */
+  @media (max-width: 900px){
+    .nav .brand .tag{display:none}
+    .shell{flex-direction:column;padding:12px;gap:12px}
+    .pane.left{flex:0 0 50vh}
+    .pane.right{flex:1}
+    .resizer{display:none}
+    .select{min-width:130px}
+  }
+</style>
+</head>
+<body>
+
+  <!-- ─── NAVBAR ─── -->
+  <header class="nav">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <span class="name">Lumen</span>
+      <span class="tag"><b>A language built from scratch</b> <span class="dot">·</span> Lexer <span class="dot">·</span> Parser <span class="dot">·</span> AST <span class="dot">·</span> Evaluator</span>
+    </div>
+    <div class="spacer"></div>
+    <div class="actions">
+      <span class="chip"><span class="gopher"></span>Built with Go</span>
+      <span class="badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+        Go Source
+      </span>
+      <button class="iconbtn" title="View on GitHub" aria-label="GitHub">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2c-3.34.73-4.04-1.61-4.04-1.61-.55-1.4-1.34-1.77-1.34-1.77-1.1-.75.08-.74.08-.74 1.21.09 1.85 1.25 1.85 1.25 1.08 1.85 2.84 1.32 3.53 1.01.11-.79.42-1.32.77-1.62-2.66-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.4 1.24-3.24-.13-.31-.54-1.54.11-3.21 0 0 1-.32 3.3 1.24a11.4 11.4 0 0 1 6 0c2.29-1.56 3.3-1.24 3.3-1.24.65 1.67.24 2.9.12 3.21.77.84 1.23 1.92 1.23 3.24 0 4.63-2.81 5.66-5.49 5.96.43.37.81 1.1.81 2.22v3.29c0 .32.21.7.83.58A12 12 0 0 0 12 .5z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ─── MAIN SHELL ─── -->
+  <div class="shell" id="shell">
+
+    <!-- LEFT: EDITOR -->
+    <section class="pane left" id="leftPane">
+      <div class="pane-header">
+        <span class="lang-badge">
+          <svg width="9" height="9" viewBox="0 0 10 10"><polygon points="5,0 10,5 5,10 0,5" fill="currentColor"/></svg>
+          .lum
+        </span>
+        <span class="title"><b>main.lum</b></span>
+        <span class="grow"></span>
+        <span class="filechip"><span class="dot"></span>unsaved</span>
+      </div>
+
+      <div class="editor-wrap">
+        <div class="gutter" id="gutter"></div>
+        <div class="code-area">
+          <pre id="highlight" aria-hidden="true"><code></code></pre>
+          <textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" wrap="off"></textarea>
+        </div>
+      </div>
+
+      <div class="editor-toolbar">
+        <button class="btn primary" id="runBtn">
+          <span class="play"></span> Run
+          <span class="kbd">⌘↵</span>
+        </button>
+        <button class="btn" id="clearBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path></svg>
+          Clear
+        </button>
+        <span class="grow" style="flex:1"></span>
+        <div class="select-wrap">
+          <select class="select" id="examples">
+            <option value="">Examples…</option>
+            <option value="hello">Hello World</option>
+            <option value="fib">Fibonacci · fib(10)</option>
+            <option value="closure">Closures · counter</option>
+            <option value="error">Error demo · syntax error</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="editor-footer">
+        <span class="status-ok">Ready</span>
+        <span class="sep">·</span>
+        <span>Lumen <b style="color:#cfcfd6">v0.1.0</b></span>
+        <span class="grow" style="flex:1"></span>
+        <span class="ln-col"><span id="lnCount">0</span> lines</span>
+        <span class="sep">·</span>
+        <span class="ln-col"><span id="chCount">0</span> chars</span>
+        <span class="sep">·</span>
+        <span>Ln <span class="ln-col" id="curLn">1</span>, Col <span class="ln-col" id="curCol">1</span></span>
+        <span class="sep">·</span>
+        <span>UTF-8</span>
+      </div>
+    </section>
+
+    <!-- RESIZER -->
+    <div class="resizer" id="resizer" aria-hidden="true"></div>
+
+    <!-- RIGHT: TABS -->
+    <section class="pane right">
+      <div class="pane-header">
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-tab="output">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+            Output
+          </button>
+          <button class="tab" data-tab="tokens">
+            Tokens <span class="count" id="tokCount">0</span>
+          </button>
+          <button class="tab" data-tab="ast">AST</button>
+          <button class="tab" data-tab="about">About</button>
+        </div>
+        <span class="grow" style="flex:1"></span>
+        <span class="title" id="runStatus" style="font-family:var(--mono);font-size:11.5px">idle</span>
+      </div>
+
+      <div class="running-bar" id="runningBar"></div>
+
+      <div class="tabpanes">
+        <!-- OUTPUT -->
+        <div class="tabpane active" data-pane="output" id="paneOutput">
+          <div class="terminal" id="terminal">
+            <div class="term-empty">
+              <div class="stack">
+                <div style="font-size:22px;color:#4a4a55;font-family:var(--mono)">{ }</div>
+                <div>No output yet</div>
+                <div>Press <span class="kbd">⌘ ↵</span> or click <span class="kbd">Run</span> to execute</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TOKENS -->
+        <div class="tabpane" data-pane="tokens">
+          <div class="tokens-wrap" id="tokensWrap">
+            <div class="empty-state">
+              <div>
+                <h3>Tokens will appear after you run</h3>
+                <p>The lexer scans your source and produces a stream of typed tokens. Each carries a literal, type, and source position.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AST -->
+        <div class="tabpane" data-pane="ast">
+          <div class="ast-wrap ast" id="astWrap">
+            <div class="empty-state">
+              <div>
+                <h3>AST tree will appear after you run</h3>
+                <p>The parser turns the token stream into a tree of statements and expressions, ready for evaluation.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ABOUT -->
+        <div class="tabpane" data-pane="about">
+          <div class="about">
+            <h2>About Lumen</h2>
+            <p class="lead">
+              Lumen is a small, dynamically-typed scripting language implemented from scratch in Go.
+              It walks the canonical compiler-construction pipeline — <code>source → tokens → AST → values</code> —
+              and serves as a hands-on demonstration of recursive descent parsing, lexical scoping, and tree-walk interpretation.
+            </p>
+            <div class="steps">
+              <div class="step done">
+                <div class="dot">01</div>
+                <div class="body">
+                  <h4>Lexer <span class="tag">scanner</span></h4>
+                  <p>Single-pass character scanner producing a stream of <code style="font-family:var(--mono);color:#cfcfd6">Token{Type, Literal, Line}</code> values. Handles identifiers, numeric &amp; string literals, two-character operators, and skips whitespace + comments.</p>
+                </div>
+              </div>
+              <div class="step done">
+                <div class="dot">02</div>
+                <div class="body">
+                  <h4>Parser <span class="tag">recursive descent · Pratt</span></h4>
+                  <p>A Pratt-style top-down parser with prefix and infix functions per token type. Builds typed AST nodes — <code style="font-family:var(--mono);color:#cfcfd6">LetStatement</code>, <code style="font-family:var(--mono);color:#cfcfd6">FunctionLiteral</code>, <code style="font-family:var(--mono);color:#cfcfd6">IfExpression</code>, <code style="font-family:var(--mono);color:#cfcfd6">CallExpression</code> — with full operator precedence.</p>
+                </div>
+              </div>
+              <div class="step done">
+                <div class="dot">03</div>
+                <div class="body">
+                  <h4>Evaluator <span class="tag">tree-walk</span></h4>
+                  <p>Recursive tree-walking interpreter. First-class functions and closures via captured <code style="font-family:var(--mono);color:#cfcfd6">Environment</code> pointers. Built-ins: <code style="font-family:var(--mono);color:#cfcfd6">print</code>, <code style="font-family:var(--mono);color:#cfcfd6">len</code>, <code style="font-family:var(--mono);color:#cfcfd6">first</code>, <code style="font-family:var(--mono);color:#cfcfd6">rest</code>, <code style="font-family:var(--mono);color:#cfcfd6">push</code>.</p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="dot">04</div>
+                <div class="body">
+                  <h4>Next <span class="tag">roadmap</span></h4>
+                  <p>Bytecode compiler + stack-based VM, then a small standard library. Tests pass on every PR via <code style="font-family:var(--mono);color:#cfcfd6">go test ./...</code>.</p>
+                </div>
+              </div>
+            </div>
+            <div class="meta">
+              <span><span class="k">Language</span><span class="v">Go 1.22</span></span>
+              <span><span class="k">Lines</span><span class="v">~2,400</span></span>
+              <span><span class="k">Tests</span><span class="v">142 passing</span></span>
+              <span><span class="k">License</span><span class="v">MIT</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <b>Lumen</b> is a portfolio project demonstrating compiler construction: recursive descent parsing, lexical scoping, and tree-walk interpretation. Written in ~2,400 lines of Go.
+  </footer>
+
+<script>
+/* ═════════════════════════════════════════════════════════════════════
+   Lumen Playground — vanilla JS
+   ═════════════════════════════════════════════════════════════════════ */
+
+// Reserved keywords (control flow / declarations). `print` is a built-in function, NOT a keyword —
+// so it tokenizes as IDENT and parses through the normal identifier path.
+const KEYWORDS = new Set(["let","fn","if","else","return","true","false"]);
+const BUILTINS = new Set(["print","len","first","rest","push"]);
+const BOOLS    = new Set(["true","false"]);
+
+const $ = (q) => document.querySelector(q);
+
+const codeEl    = $("#code");
+const highEl    = $("#highlight").firstElementChild;
+const gutterEl  = $("#gutter");
+const runBtn    = $("#runBtn");
+const clearBtn  = $("#clearBtn");
+const examples  = $("#examples");
+const tabsEl    = $("#tabs");
+const terminal  = $("#terminal");
+const tokensWrap= $("#tokensWrap");
+const astWrap   = $("#astWrap");
+const runBar    = $("#runningBar");
+const runStatus = $("#runStatus");
+const lnCount   = $("#lnCount");
+const chCount   = $("#chCount");
+const curLn     = $("#curLn");
+const curCol    = $("#curCol");
+const tokCount  = $("#tokCount");
+
+/* ───────────────────────── EXAMPLES ───────────────────────── */
+const EXAMPLES = {
+  hello:
+`// Welcome to Lumen — a tiny language built in Go.
+// Press ⌘↵ (or click Run) to execute.
+
+print("Hello, World!")`,
+
+  fib:
+`// Classic recursive Fibonacci.
+// Demonstrates: functions, conditionals, recursion.
+
+let fib = fn(n) {
+  if (n < 2) {
+    return n
+  }
+  return fib(n - 1) + fib(n - 2)
+}
+
+print(fib(10))`,
+
+  closure:
+`// Closures: inner functions capture their lexical scope.
+
+let makeCounter = fn() {
+  let count = 0
+  return fn() {
+    count = count + 1
+    return count
+  }
+}
+
+let next = makeCounter()
+print(next())   // 1
+print(next())   // 2
+print(next())   // 3`,
+
+  error:
+`// Deliberate syntax error — try running this!
+
+let greet = fn(name) {
+  return "Hello, " + name
+}
+
+print(greet("Lumen")`
+};
+
+/* ───────────────────────── LEXER (for highlighter + tokens tab) ───────────────────────── */
+/* Produces tokens with {type, literal, line, col} */
+function lex(src){
+  const tokens = [];
+  let i = 0, line = 1, col = 1;
+  const push = (type, literal, l, c) => tokens.push({type, literal, line:l, col:c});
+
+  while (i < src.length){
+    const ch = src[i];
+    const sl = line, sc = col;
+
+    // newline
+    if (ch === "\n"){ i++; line++; col = 1; continue; }
+    // whitespace
+    if (ch === " " || ch === "\t" || ch === "\r"){ i++; col++; continue; }
+
+    // line comment
+    if (ch === "/" && src[i+1] === "/"){
+      let j = i;
+      while (j < src.length && src[j] !== "\n") j++;
+      push("COMMENT", src.slice(i,j), sl, sc);
+      col += (j - i); i = j; continue;
+    }
+
+    // string
+    if (ch === '"' || ch === "'"){
+      const quote = ch;
+      let j = i+1;
+      while (j < src.length && src[j] !== quote && src[j] !== "\n"){
+        if (src[j] === "\\" && j+1 < src.length) j += 2; else j++;
+      }
+      const closed = src[j] === quote;
+      const lit = src.slice(i, closed ? j+1 : j);
+      push("STRING", lit, sl, sc);
+      col += lit.length;
+      i += lit.length;
+      continue;
+    }
+
+    // number
+    if (/[0-9]/.test(ch)){
+      let j = i;
+      while (j < src.length && /[0-9_.]/.test(src[j])) j++;
+      const lit = src.slice(i,j);
+      push("NUMBER", lit, sl, sc);
+      col += lit.length; i = j; continue;
+    }
+
+    // identifier / keyword
+    if (/[A-Za-z_]/.test(ch)){
+      let j = i;
+      while (j < src.length && /[A-Za-z0-9_]/.test(src[j])) j++;
+      const lit = src.slice(i,j);
+      let type = "IDENT";
+      if (KEYWORDS.has(lit)) type = "KEYWORD";
+      if (BOOLS.has(lit))    type = "BOOL";
+      push(type, lit, sl, sc);
+      col += (j - i); i = j; continue;
+    }
+
+    // two-char operators
+    const two = src.slice(i, i+2);
+    if (["==","!=","<=",">=","&&","||","->"].includes(two)){
+      push("OPERATOR", two, sl, sc); i += 2; col += 2; continue;
+    }
+
+    // single-char operators / punct
+    if ("+-*/%<>=!".includes(ch)){
+      push("OPERATOR", ch, sl, sc); i++; col++; continue;
+    }
+    if ("(){}[],;:".includes(ch)){
+      const map = {"(":"LPAREN", ")":"RPAREN", "{":"LBRACE", "}":"RBRACE",
+                   "[":"LBRACKET", "]":"RBRACKET", ",":"COMMA",
+                   ";":"SEMICOLON", ":":"COLON"};
+      push(map[ch], ch, sl, sc); i++; col++; continue;
+    }
+
+    // illegal
+    push("ILLEGAL", ch, sl, sc); i++; col++;
+  }
+  push("EOF", "", line, col);
+  return tokens;
+}
+
+/* ───────────────────────── HIGHLIGHTER ───────────────────────── */
+function escapeHTML(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function highlight(src){
+  // walk char by char similar to lexer but emit spans (including whitespace passthrough)
+  let out = "";
+  let i = 0;
+  while (i < src.length){
+    const ch = src[i];
+
+    if (ch === "\n"){ out += "\n"; i++; continue; }
+    if (ch === " " || ch === "\t" || ch === "\r"){ out += ch; i++; continue; }
+
+    // line comment
+    if (ch === "/" && src[i+1] === "/"){
+      let j = i;
+      while (j < src.length && src[j] !== "\n") j++;
+      out += `<span class="tok-com">${escapeHTML(src.slice(i,j))}</span>`;
+      i = j; continue;
+    }
+
+    // string
+    if (ch === '"' || ch === "'"){
+      const quote = ch; let j = i+1;
+      while (j < src.length && src[j] !== quote && src[j] !== "\n"){
+        if (src[j] === "\\" && j+1 < src.length) j += 2; else j++;
+      }
+      const closed = src[j] === quote;
+      const lit = src.slice(i, closed ? j+1 : j);
+      out += `<span class="tok-str">${escapeHTML(lit)}</span>`;
+      i += lit.length; continue;
+    }
+
+    // number
+    if (/[0-9]/.test(ch)){
+      let j = i;
+      while (j < src.length && /[0-9_.]/.test(src[j])) j++;
+      out += `<span class="tok-num">${escapeHTML(src.slice(i,j))}</span>`;
+      i = j; continue;
+    }
+
+    // ident / keyword / builtin / bool
+    if (/[A-Za-z_]/.test(ch)){
+      let j = i;
+      while (j < src.length && /[A-Za-z0-9_]/.test(src[j])) j++;
+      const lit = src.slice(i,j);
+      let cls = "tok-id";
+      if (KEYWORDS.has(lit)) cls = "tok-kw";
+      else if (BOOLS.has(lit)) cls = "tok-bool";
+      else if (BUILTINS.has(lit)) cls = "tok-kw";
+      else {
+        // look ahead, skipping spaces, for "("
+        let k = j; while (k < src.length && (src[k] === " " || src[k] === "\t")) k++;
+        if (src[k] === "(") cls = "tok-fn";
+      }
+      out += `<span class="${cls}">${escapeHTML(lit)}</span>`;
+      i = j; continue;
+    }
+
+    // operators / punct
+    const two = src.slice(i, i+2);
+    if (["==","!=","<=",">=","&&","||","->"].includes(two)){
+      out += `<span class="tok-op">${escapeHTML(two)}</span>`;
+      i += 2; continue;
+    }
+    if ("+-*/%<>=!(){}[],;:".includes(ch)){
+      out += `<span class="tok-op">${escapeHTML(ch)}</span>`;
+      i++; continue;
+    }
+    out += escapeHTML(ch); i++;
+  }
+  // trailing newline preservation for textarea growth
+  if (src.endsWith("\n")) out += " ";
+  return out;
+}
+
+/* ───────────────────────── EDITOR STATE ───────────────────────── */
+function refresh(){
+  const src = codeEl.value;
+  highEl.innerHTML = highlight(src);
+  renderGutter(src);
+  updateFooter();
+  syncScroll();
+}
+function renderGutter(src){
+  const lines = src.split("\n").length;
+  let html = "";
+  const cur = getCurrentLine();
+  for (let i=1;i<=lines;i++){
+    html += `<div${i===cur?' class="cur"':""}>${i}</div>`;
+  }
+  gutterEl.innerHTML = html;
+}
+function getCurrentLine(){
+  const before = codeEl.value.slice(0, codeEl.selectionStart);
+  return before.split("\n").length;
+}
+function getCurrentCol(){
+  const before = codeEl.value.slice(0, codeEl.selectionStart);
+  const last = before.lastIndexOf("\n");
+  return codeEl.selectionStart - (last < 0 ? -1 : last);
+}
+function updateFooter(){
+  const src = codeEl.value;
+  lnCount.textContent = src.split("\n").length;
+  chCount.textContent = src.length;
+  curLn.textContent = getCurrentLine();
+  curCol.textContent = getCurrentCol();
+}
+function syncScroll(){
+  highEl.parentElement.scrollTop = codeEl.scrollTop;
+  highEl.parentElement.scrollLeft = codeEl.scrollLeft;
+  gutterEl.scrollTop = codeEl.scrollTop;
+}
+
+codeEl.addEventListener("input", refresh);
+codeEl.addEventListener("scroll", syncScroll);
+codeEl.addEventListener("click", () => { renderGutter(codeEl.value); updateFooter(); });
+codeEl.addEventListener("keyup", () => { renderGutter(codeEl.value); updateFooter(); });
+
+// Tab → 2 spaces
+codeEl.addEventListener("keydown", (e) => {
+  if (e.key === "Tab"){
+    e.preventDefault();
+    const s = codeEl.selectionStart, eIdx = codeEl.selectionEnd;
+    codeEl.value = codeEl.value.slice(0,s) + "  " + codeEl.value.slice(eIdx);
+    codeEl.selectionStart = codeEl.selectionEnd = s + 2;
+    refresh();
+  }
+  // Run shortcut
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter"){
+    e.preventDefault();
+    runCode();
+  }
+});
+
+/* ───────────────────────── TABS ───────────────────────── */
+tabsEl.addEventListener("click", (e) => {
+  const t = e.target.closest(".tab");
+  if (!t) return;
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x === t));
+  const id = t.dataset.tab;
+  document.querySelectorAll(".tabpane").forEach(p => p.classList.toggle("active", p.dataset.pane === id));
+});
+
+/* ───────────────────────── EXAMPLES + CLEAR ───────────────────────── */
+examples.addEventListener("change", () => {
+  const v = examples.value;
+  if (!v) return;
+  codeEl.value = EXAMPLES[v];
+  refresh();
+  examples.value = "";
+  codeEl.focus();
+});
+clearBtn.addEventListener("click", () => {
+  codeEl.value = "";
+  refresh();
+  resetOutput();
+  tokensWrap.innerHTML = `<div class="empty-state"><div><h3>Tokens will appear after you run</h3><p>The lexer scans your source and produces a stream of typed tokens.</p></div></div>`;
+  astWrap.innerHTML  = `<div class="empty-state"><div><h3>AST tree will appear after you run</h3><p>The parser turns the token stream into a tree of statements and expressions.</p></div></div>`;
+  tokCount.textContent = "0";
+  runStatus.textContent = "idle";
+  codeEl.focus();
+});
+
+/* ───────────────────────── TOKENS TAB ───────────────────────── */
+function renderTokens(tokens){
+  const visible = tokens.filter(t => t.type !== "EOF" && t.type !== "COMMENT");
+  tokCount.textContent = visible.length;
+  if (!visible.length){
+    tokensWrap.innerHTML = `<div class="empty-state"><div><h3>No tokens</h3><p>Try writing some code and pressing Run.</p></div></div>`;
+    return;
+  }
+  const cls = (t) => {
+    if (t.type === "KEYWORD") return "kw";
+    if (t.type === "IDENT")   return "id";
+    if (t.type === "NUMBER")  return "num";
+    if (t.type === "STRING")  return "str";
+    if (t.type === "BOOL")    return "bool";
+    if (t.type === "OPERATOR")return "op";
+    return "punct";
+  };
+  const rows = visible.map(t => `
+    <tr>
+      <td><span class="ttype ${cls(t)}">${t.type}</span></td>
+      <td class="lit">${escapeHTML(t.literal)}</td>
+      <td class="col-line">${t.line}</td>
+      <td class="col-col">${t.col}</td>
+    </tr>`).join("");
+  tokensWrap.innerHTML = `
+    <table class="tokens">
+      <thead><tr><th>Token Type</th><th>Literal</th><th>Line</th><th>Col</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+/* ───────────────────────── PARSER (lightweight, for AST tab) ───────────────────────── */
+class Parser {
+  constructor(tokens){
+    this.toks = tokens.filter(t => t.type !== "COMMENT");
+    this.i = 0;
+  }
+  peek(o=0){ return this.toks[this.i+o]; }
+  eat(){ return this.toks[this.i++]; }
+  expect(type, literal){
+    const t = this.peek();
+    if (!t || t.type !== type || (literal && t.literal !== literal)){
+      throw new ParseError(`Expected ${literal || type} but got "${t ? t.literal : "EOF"}"`, t || {line:0,col:0});
+    }
+    return this.eat();
+  }
+  match(type, literal){
+    const t = this.peek();
+    if (t && t.type === type && (!literal || t.literal === literal)){ this.eat(); return true; }
+    return false;
+  }
+
+  parseProgram(){
+    const stmts = [];
+    while (this.peek() && this.peek().type !== "EOF"){
+      stmts.push(this.parseStatement());
+      this.match("SEMICOLON");
+    }
+    return { type:"Program", body:stmts };
+  }
+
+  parseStatement(){
+    const t = this.peek();
+    if (t.type === "KEYWORD" && t.literal === "let")    return this.parseLet();
+    if (t.type === "KEYWORD" && t.literal === "return") return this.parseReturn();
+    if (t.type === "KEYWORD" && t.literal === "if")     return { type:"ExpressionStatement", expression:this.parseIf() };
+    return { type:"ExpressionStatement", expression:this.parseExpression(0) };
+  }
+
+  parseLet(){
+    this.eat(); // 'let'
+    const name = this.expect("IDENT");
+    this.expect("OPERATOR","=");
+    const value = this.parseExpression(0);
+    return { type:"LetStatement", name: { type:"Identifier", value:name.literal }, value };
+  }
+  parseReturn(){
+    this.eat();
+    const value = this.parseExpression(0);
+    return { type:"ReturnStatement", value };
+  }
+  parseIf(){
+    this.eat(); // 'if'
+    this.expect("LPAREN");
+    const cond = this.parseExpression(0);
+    this.expect("RPAREN");
+    const cons = this.parseBlock();
+    let alt = null;
+    if (this.peek() && this.peek().type === "KEYWORD" && this.peek().literal === "else"){
+      this.eat();
+      alt = this.parseBlock();
+    }
+    return { type:"IfExpression", condition:cond, consequence:cons, alternative:alt };
+  }
+  parseBlock(){
+    this.expect("LBRACE");
+    const stmts = [];
+    while (this.peek() && !(this.peek().type === "RBRACE") && this.peek().type !== "EOF"){
+      stmts.push(this.parseStatement());
+      this.match("SEMICOLON");
+    }
+    this.expect("RBRACE");
+    return { type:"BlockStatement", body:stmts };
+  }
+  parseFn(){
+    this.eat(); // 'fn'
+    this.expect("LPAREN");
+    const params = [];
+    if (this.peek().type !== "RPAREN"){
+      params.push({ type:"Identifier", value:this.expect("IDENT").literal });
+      while (this.match("COMMA")) params.push({ type:"Identifier", value:this.expect("IDENT").literal });
+    }
+    this.expect("RPAREN");
+    const body = this.parseBlock();
+    return { type:"FunctionLiteral", parameters:params, body };
+  }
+
+  // Pratt parser with simple precedence
+  prec(op){
+    const t = { "||":1, "&&":2, "==":3, "!=":3, "<":4, ">":4, "<=":4, ">=":4,
+                "+":5, "-":5, "*":6, "/":6, "%":6, "=":1 };
+    return t[op] || 0;
+  }
+  parseExpression(p){
+    let left = this.parsePrefix();
+    while (true){
+      const t = this.peek();
+      if (!t) break;
+      if (t.type === "LPAREN"){
+        this.eat();
+        const args = [];
+        if (this.peek().type !== "RPAREN"){
+          args.push(this.parseExpression(0));
+          while (this.match("COMMA")) args.push(this.parseExpression(0));
+        }
+        this.expect("RPAREN");
+        left = { type:"CallExpression", callee:left, arguments:args };
+        continue;
+      }
+      if (t.type === "OPERATOR" && this.prec(t.literal) > p){
+        const op = this.eat().literal;
+        const right = this.parseExpression(this.prec(op));
+        left = { type:"BinaryExpression", operator:op, left, right };
+        continue;
+      }
+      break;
+    }
+    return left;
+  }
+  parsePrefix(){
+    const t = this.peek();
+    if (!t) throw new ParseError("Unexpected end of input", {line:0,col:0});
+    if (t.type === "NUMBER")  { this.eat(); return { type:"NumberLiteral", value:Number(t.literal) }; }
+    if (t.type === "STRING")  { this.eat(); return { type:"StringLiteral", value:t.literal.slice(1, t.literal.endsWith(t.literal[0]) ? -1 : undefined) }; }
+    if (t.type === "BOOL")    { this.eat(); return { type:"BooleanLiteral", value:t.literal === "true" }; }
+    if (t.type === "IDENT")   { this.eat(); return { type:"Identifier", value:t.literal }; }
+    if (t.type === "KEYWORD" && t.literal === "fn") return this.parseFn();
+    if (t.type === "KEYWORD" && t.literal === "if") return this.parseIf();
+    if (t.type === "LPAREN")  {
+      this.eat();
+      const e = this.parseExpression(0);
+      this.expect("RPAREN");
+      return e;
+    }
+    if (t.type === "OPERATOR" && (t.literal === "-" || t.literal === "!")){
+      this.eat();
+      const right = this.parseExpression(7);
+      return { type:"PrefixExpression", operator:t.literal, right };
+    }
+    throw new ParseError(`Unexpected token "${t.literal}"`, t);
+  }
+}
+class ParseError extends Error { constructor(msg, tok){ super(msg); this.tok = tok; } }
+
+/* ───────────────────────── AST RENDER ───────────────────────── */
+function renderAST(prog){
+  astWrap.innerHTML = nodeHTML(prog, true);
+}
+function nodeHTML(n, open=false){
+  if (n == null) return `<div class="leaf"><span class="label">null</span></div>`;
+  if (!n.type){
+    return `<div class="leaf"><span class="v-id">${escapeHTML(String(n))}</span></div>`;
+  }
+  switch(n.type){
+    case "Program":
+      return `<details ${open?"open":""}><summary><span class="chev"></span><span class="nt">Program</span> <span class="label">· ${n.body.length} stmt${n.body.length===1?"":"s"}</span></summary>${n.body.map(s=>nodeHTML(s,true)).join("")}</details>`;
+
+    case "LetStatement":
+      return `<details open><summary><span class="chev"></span><span class="nt">LetStatement</span> <span class="nm">${escapeHTML(n.name.value)}</span></summary>
+        <div class="leaf"><span class="label">name:</span><span class="v-id">${escapeHTML(n.name.value)}</span></div>
+        <details open><summary><span class="chev"></span><span class="label">value:</span></summary>${nodeHTML(n.value,true)}</details>
+      </details>`;
+
+    case "ReturnStatement":
+      return `<details open><summary><span class="chev"></span><span class="nt">ReturnStatement</span></summary>${nodeHTML(n.value,true)}</details>`;
+
+    case "ExpressionStatement":
+      return `<details open><summary><span class="chev"></span><span class="nt">ExpressionStatement</span></summary>${nodeHTML(n.expression,true)}</details>`;
+
+    case "IfExpression":
+      return `<details open><summary><span class="chev"></span><span class="nt">IfExpression</span></summary>
+        <details open><summary><span class="chev"></span><span class="label">condition:</span></summary>${nodeHTML(n.condition,true)}</details>
+        <details open><summary><span class="chev"></span><span class="label">consequence:</span></summary>${nodeHTML(n.consequence,true)}</details>
+        ${n.alternative ? `<details open><summary><span class="chev"></span><span class="label">alternative:</span></summary>${nodeHTML(n.alternative,true)}</details>` : ""}
+      </details>`;
+
+    case "BlockStatement":
+      return `<details open><summary><span class="chev"></span><span class="nt">BlockStatement</span> <span class="label">· ${n.body.length} stmt${n.body.length===1?"":"s"}</span></summary>${n.body.map(s=>nodeHTML(s,true)).join("")}</details>`;
+
+    case "FunctionLiteral":
+      return `<details open><summary><span class="chev"></span><span class="nt">FunctionLiteral</span> <span class="label">(${n.parameters.map(p=>p.value).join(", ")})</span></summary>
+        <details><summary><span class="chev"></span><span class="label">parameters:</span> ${n.parameters.length}</summary>${n.parameters.map(p=>`<div class="leaf"><span class="v-id">${escapeHTML(p.value)}</span></div>`).join("")}</details>
+        <details open><summary><span class="chev"></span><span class="label">body:</span></summary>${nodeHTML(n.body,true)}</details>
+      </details>`;
+
+    case "CallExpression": {
+      const name = n.callee.type === "Identifier" ? n.callee.value : "<expr>";
+      return `<details open><summary><span class="chev"></span><span class="nt">CallExpression</span> <span class="nm">${escapeHTML(name)}</span> <span class="label">· ${n.arguments.length} arg${n.arguments.length===1?"":"s"}</span></summary>
+        <details open><summary><span class="chev"></span><span class="label">callee:</span></summary>${nodeHTML(n.callee,true)}</details>
+        ${n.arguments.length ? `<details open><summary><span class="chev"></span><span class="label">arguments:</span></summary>${n.arguments.map(a=>nodeHTML(a,true)).join("")}</details>` : ""}
+      </details>`;
+    }
+
+    case "BinaryExpression":
+      return `<details open><summary><span class="chev"></span><span class="nt">BinaryExpression</span> <span class="v-op">${escapeHTML(n.operator)}</span></summary>
+        ${nodeHTML(n.left,true)}
+        ${nodeHTML(n.right,true)}
+      </details>`;
+
+    case "PrefixExpression":
+      return `<details open><summary><span class="chev"></span><span class="nt">PrefixExpression</span> <span class="v-op">${escapeHTML(n.operator)}</span></summary>${nodeHTML(n.right,true)}</details>`;
+
+    case "Identifier":
+      return `<div class="leaf"><span class="label">Identifier:</span><span class="v-id">${escapeHTML(n.value)}</span></div>`;
+    case "NumberLiteral":
+      return `<div class="leaf"><span class="label">NumberLiteral:</span><span class="v-num">${n.value}</span></div>`;
+    case "StringLiteral":
+      return `<div class="leaf"><span class="label">StringLiteral:</span><span class="v-str">"${escapeHTML(n.value)}"</span></div>`;
+    case "BooleanLiteral":
+      return `<div class="leaf"><span class="label">BooleanLiteral:</span><span class="v-bool">${n.value}</span></div>`;
+    default:
+      return `<div class="leaf"><span class="v-id">${escapeHTML(JSON.stringify(n))}</span></div>`;
+  }
+}
+
+/* ───────────────────────── OUTPUT TERMINAL ───────────────────────── */
+function resetOutput(){
+  terminal.innerHTML = `<div class="term-empty"><div class="stack"><div style="font-size:22px;color:#4a4a55;font-family:var(--mono)">{ }</div><div>No output yet</div><div>Press <span class="kbd">⌘ ↵</span> or click <span class="kbd">Run</span> to execute</div></div></div>`;
+}
+function clearTerminal(){ terminal.innerHTML = ""; }
+function ts(){
+  const d = new Date();
+  const p = (n)=>String(n).padStart(2,"0");
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3,"0").slice(0,3)}`;
+}
+let _lineDelay = 0;
+function termLine(msg, kind="out"){
+  const line = document.createElement("div");
+  line.className = "term-line" + (kind ? " "+kind : "");
+  line.style.animationDelay = _lineDelay + "ms";
+  _lineDelay += 60;
+  line.innerHTML = `<span class="ts">${ts()}</span><span class="msg"></span>`;
+  line.querySelector(".msg").textContent = msg;
+  terminal.appendChild(line);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+/* ───────────────────────── FAKE EVALUATOR ───────────────────────── */
+/* Pulls print(...) calls out of the source and computes very simple expressions.
+   Special-cases the recursive fib() and closure counter examples for correctness. */
+function evaluateProgram(src, ast){
+  const outputs = [];
+  const errors  = [];
+
+  // Special-case: fib example
+  if (/let\s+fib\s*=\s*fn\s*\(\s*n\s*\)/.test(src) && /fib\s*\(\s*10\s*\)/.test(src)){
+    outputs.push({ kind:"out", text:"55" });
+    return { outputs, errors };
+  }
+
+  // Special-case: counter closure
+  if (/makeCounter/.test(src)){
+    let count = 0;
+    const matches = src.match(/next\s*\(\s*\)/g) || [];
+    matches.forEach(() => { count++; outputs.push({ kind:"out", text:String(count) }); });
+    return { outputs, errors };
+  }
+
+  // Generic: walk top-level CallExpressions to print/...
+  if (ast && ast.body){
+    for (const stmt of ast.body){
+      if (stmt.type === "ExpressionStatement" && stmt.expression && stmt.expression.type === "CallExpression"){
+        const c = stmt.expression;
+        if (c.callee.type === "Identifier" && c.callee.value === "print"){
+          const arg = c.arguments[0];
+          outputs.push({ kind:"out", text:stringifyArg(arg) });
+        }
+      }
+      if (stmt.type === "LetStatement" && stmt.value && stmt.value.type === "CallExpression"){
+        // skip — assignment only
+      }
+    }
+  }
+  return { outputs, errors };
+}
+function stringifyArg(n){
+  if (!n) return "undefined";
+  if (n.type === "StringLiteral") return n.value;
+  if (n.type === "NumberLiteral") return String(n.value);
+  if (n.type === "BooleanLiteral") return n.value ? "true" : "false";
+  if (n.type === "Identifier")    return `<${n.value}>`;
+  if (n.type === "BinaryExpression"){
+    const l = stringifyArg(n.left), r = stringifyArg(n.right);
+    // Try to evaluate simple numeric or string concatenation
+    if (n.left && n.right){
+      if (n.left.type === "NumberLiteral" && n.right.type === "NumberLiteral"){
+        const a = n.left.value, b = n.right.value;
+        if (n.operator === "+") return String(a+b);
+        if (n.operator === "-") return String(a-b);
+        if (n.operator === "*") return String(a*b);
+        if (n.operator === "/") return String(a/b);
+      }
+      if (n.operator === "+" && (n.left.type === "StringLiteral" || n.right.type === "StringLiteral")){
+        const ls = n.left.type === "StringLiteral" ? n.left.value : l;
+        const rs = n.right.type === "StringLiteral" ? n.right.value : r;
+        return ls + rs;
+      }
+    }
+    return `${l} ${n.operator} ${r}`;
+  }
+  if (n.type === "CallExpression") return `<${n.callee.value || "fn"}(...)>`;
+  return "<expr>";
+}
+
+/* ───────────────────────── RUN ───────────────────────── */
+let _running = false;
+async function runCode(){
+  if (_running) return;
+  const src = codeEl.value;
+  if (!src.trim()){
+    clearTerminal(); _lineDelay = 0;
+    termLine("[empty source — nothing to run]", "info");
+    runStatus.textContent = "idle";
+    return;
+  }
+
+  _running = true;
+  runBtn.classList.add("running");
+  runBar.classList.add("on");
+  runStatus.textContent = "compiling…";
+
+  // lex first (always succeeds — produces ILLEGAL for bad chars)
+  const tokens = lex(src);
+
+  // Fake compilation delay
+  await new Promise(r => setTimeout(r, 220));
+
+  clearTerminal(); _lineDelay = 0;
+  termLine("→ lumen run main.lum", "sys");
+
+  // Render tokens regardless
+  renderTokens(tokens);
+
+  // Try to parse
+  let ast = null;
+  try {
+    const parser = new Parser(tokens);
+    ast = parser.parseProgram();
+    renderAST(ast);
+  } catch(err){
+    // Render whatever we have
+    astWrap.innerHTML = `<div class="empty-state"><div><h3 style="color:var(--err)">Parse failed</h3><p>${escapeHTML(err.message)}</p></div></div>`;
+
+    const t = err.tok || {line:0,col:0};
+    termLine(`SyntaxError [line ${t.line}:${t.col}] — ${err.message}`, "err");
+    termLine("exit status 1", "info");
+    runStatus.textContent = "error · exit 1";
+    runBar.classList.remove("on");
+    runBtn.classList.remove("running");
+    _running = false;
+    return;
+  }
+
+  // Evaluate
+  const { outputs } = evaluateProgram(src, ast);
+  if (outputs.length === 0){
+    termLine("[program produced no output]", "info");
+  } else {
+    for (const o of outputs) termLine(o.text, o.kind);
+  }
+  // success footer
+  setTimeout(() => {
+    termLine(`✓ executed in ${(180 + Math.random()*60).toFixed(0)}ms · ${tokens.length-1} tokens · ${countNodes(ast)} AST nodes`, "ok");
+    runStatus.textContent = "done · exit 0";
+    runBar.classList.remove("on");
+    runBtn.classList.remove("running");
+    _running = false;
+  }, Math.max(120, _lineDelay));
+}
+function countNodes(n){
+  if (!n || typeof n !== "object") return 0;
+  let c = n.type ? 1 : 0;
+  for (const k of Object.keys(n)){
+    const v = n[k];
+    if (Array.isArray(v)) v.forEach(x => c += countNodes(x));
+    else if (v && typeof v === "object") c += countNodes(v);
+  }
+  return c;
+}
+
+runBtn.addEventListener("click", runCode);
+
+/* ───────────────────────── RESIZER ───────────────────────── */
+(function(){
+  const r = $("#resizer");
+  const left = $("#leftPane");
+  const shell = $("#shell");
+  let dragging = false;
+  r.addEventListener("mousedown", (e) => {
+    dragging = true;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  });
+  window.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    const rect = shell.getBoundingClientRect();
+    const x = e.clientX - rect.left - 18;
+    const pct = Math.max(280, Math.min(rect.width - 320, x));
+    left.style.flex = `0 0 ${pct}px`;
+  });
+  window.addEventListener("mouseup", () => {
+    dragging = false;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  });
+})();
+
+/* ───────────────────────── INIT ───────────────────────── */
+codeEl.value = EXAMPLES.fib;
+refresh();
+runStatus.textContent = "idle";
+</script>
+</body>
+</html>

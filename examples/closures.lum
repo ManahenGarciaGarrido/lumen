@@ -1,0 +1,33 @@
+// closures.lum — lexical scoping and closure mutation
+// Demonstrates: closures, reassignment, higher-order functions
+
+let makeCounter = fn() {
+  let count = 0
+  return fn() {
+    count = count + 1
+    return count
+  }
+}
+
+let next = makeCounter()
+print(next())   // 1
+print(next())   // 2
+print(next())   // 3
+
+// Two independent counters share no state
+let a = makeCounter()
+let b = makeCounter()
+print(a())      // 1
+print(b())      // 1
+print(a())      // 2
+print(b())      // 2
+
+// Adder factory — closes over x
+let makeAdder = fn(x) {
+  fn(y) { x + y }
+}
+
+let add10 = makeAdder(10)
+let add20 = makeAdder(20)
+print(add10(5))   // 15
+print(add20(5))   // 25

@@ -1,0 +1,5 @@
+// hello.lum — the classic first program
+
+let name = "Lumen"
+print("Hello, " + name + "!")
+print("Welcome to a language built from scratch in Go.")

@@ -1,0 +1,6 @@
+lumen
+lumen.exe
+*.exe
+*.test
+*.out
+.DS_Store
