@@ -1,0 +1,4 @@
+{
+  "outputDirectory": "playground",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
