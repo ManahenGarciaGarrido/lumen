@@ -165,17 +165,18 @@
     color:var(--text);
     user-select:none;
     -webkit-user-select:none;
+    -moz-user-select:none;
+    -ms-user-select:none;
   }
   .code-area textarea{
-    color:#0a0a0d;
+    color:transparent;
     caret-color:var(--accent-2);
     resize:none;
-    -webkit-text-fill-color:#0a0a0d;
+    -webkit-text-fill-color:transparent;
+    -webkit-font-smoothing:antialiased;
   }
   .code-area textarea::selection{
     background:rgba(124,106,247,.30);
-    color:#0a0a0d;
-    -webkit-text-fill-color:#0a0a0d;
   }
   .code-area textarea:focus{outline:none}
 
