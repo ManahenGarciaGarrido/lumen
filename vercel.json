@@ -1,4 +1,5 @@
 {
   "outputDirectory": "playground",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "framework": null,
+  "buildCommand": null
 }
